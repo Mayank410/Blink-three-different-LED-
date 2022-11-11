@@ -1,95 +1,73 @@
-#!/usr/bin/python3
-
-import tkinter as tk
+from tkinter import *
 import tkinter.font
-from PIL import ImageTk, Image
-import led
+from gpiozero import LED as RED_LED
+from gpiozero import LED as GREEN_LED
+from gpiozero import LED as YELLOW_LED
+import RPi.GPIO as GPIO
 
+GPIO.setmode(GPIO.BOARD)
 
-class Application(tk.Frame):
+# the LED() function of the gpiozero library takes the actually GPIO pin we are using unlike when we are using the setup() from RPi.GPIO which need the location of the GPIO pin
+# meaning to use the GPIO pin 14 using the LED() function of the gpiozero library we need to the place the wire in physical pin number 8 but in the program we will pass 14[the exact GPIO pin we are using] as argument in the LED(14) FUNCTION
+# however to use the GPIO pin 14 using the setup() from RPi.GPIO we need to the place the wire in physical pin number 8 and in the program we will pass 8[just sepecifing that it is a GPIO pin, we don't need to tell which one] as argument in the setup(8,...) Function
 
-    def exit(self):
-        self.master.destroy()
+red = RED_LED(17)  
+green = GREEN_LED(27)
+yellow = YELLOW_LED(22)
 
-    def toggle(self):
-        action = self.selected_led.get()
-        if action == 'red':
-            self.toggler.toggleLED('red')
-        elif action == 'green':
-            self.toggler.toggleLED('green')
-        else:
-            self.toggler.toggleLED('blue')
+win = Tk() #creating a window.
+win.title("LED Toggler") #creating  the title of the window.
+winFont = tkinter.font.Font(family = 'Helevetica', size = 14, weight = "bold") #define the font colour, size and weight(bold/underline) of the characters of the buttons.
 
-    def createWidgets(self):
-        # Prepare fonts
-        std_font = tk.font.Font(family='Helvetica', size=12)
-        ttl_font = tk.font.Font(family='Helvectic', size=16, weight='bold')
+def redTrigger(): #function to switch the red led on/off.
+    if red.is_lit: # is_lit checks whether the led is ON or OFF. if it is on then it will be switched OFF when the application is triggered.
+        red.off()
+        R_Button["text"] = "Switch LED on"
+    else: #if the red led is not ON, then it will be switched ON
+        red.on()
+        green.off()
+        yellow.off()
+        R_Button["text"] = "Switch LED oFF"
 
-        # Add RPi image
-        self.logo = tk.Label(self.master, image=self.img)
-        self.logo.pack(side="top", fill="x", pady=15, expand="no")
+def greenTrigger(): #function to switch the green led on/off.
+    if green.is_lit:
+        green.off()
+        G_Button()["text"] = "Switch LED on"
+    else:
+        green.on()
+        red.off()
+        yellow.off()
+        G_Button()["text"] = "Switch LED off"
 
-        # Add Task name label
-        self.label = tk.Label()
-        self.label['text'] = 'Task 5.2C - Making a GUI'
-        self.label['font'] = ttl_font
-        self.label.pack(padx=15, pady=10)
+def yellowTrigger(): #function to switch the yellow led on/off.
+    if yellow.is_lit:
+        yellow.off()
+        Y_Button()["text"] = "Switch LED on"
+    else:
+        yellow.on()
+        red.off()
+        green.off()
+        Y_Button()["text"] = "Switch LED off"
 
-        # Add Radiobuttons
-        radio_group = tk.Frame(self.master)
+def closeTrigger(): #function to close the GUI program.
+    GPIO.cleanup()
+    win.destroy()
+    red.off()
+    green.off()
+    yellow.off()
 
-        radio_red = tk.Radiobutton(radio_group)
-        radio_red['text'] = 'Red'
-        radio_red['font'] = std_font
-        radio_red['value'] = 'red'
-        radio_red['command'] = self.toggle
-        radio_red['variable'] = self.selected_led
-        radio_red.pack(anchor=tk.W)
+R_Button = Radiobutton(win, text = 'Switch LED On', font = winFont, command = redTrigger,bg = 'red', height = 2, width = 16)
+R_Button.grid(row = 0, column = 1)
 
-        radio_green = tk.Radiobutton(radio_group)
-        radio_green['text'] = 'Green'
-        radio_green['font'] = std_font
-        radio_green['value'] = 'green'
-        radio_green['command'] = self.toggle
-        radio_green['variable'] = self.selected_led
-        radio_green.pack(anchor=tk.W)
+G_Button = Radiobutton(win, text = 'Switch LED On', font = winFont, command = greenTrigger,bg = 'green', height = 2, width = 16)
+G_Button.grid(row = 1, column = 1)
 
-        radio_blue = tk.Radiobutton(radio_group)
-        radio_blue['text'] = 'Blue'
-        radio_blue['font'] = std_font
-        radio_blue['value'] = 'blue'
-        radio_blue['command'] = self.toggle
-        radio_blue['variable'] = self.selected_led
-        radio_blue.pack(anchor=tk.W)
+Y_Button = Radiobutton(win, text = 'Switch LED On', font = winFont, command = yellowTrigger,bg = 'yellow', height = 2, width = 16)
+Y_Button.grid(row = 2, column = 1)
 
-        radio_group.pack(padx=0.5, pady=15)
+exit_Button = Radiobutton(win, text = 'Exit', font = winFont, command = closeTrigger,bg = 'bisque2', height = 2, width = 16)
+exit_Button.grid(row = 3, column = 1)
 
-        # Add Exit button
-        self.EXIT = tk.Button(self.master)
-        self.EXIT['text'] = 'Exit'
-        self.EXIT['width'] = 24
-        self.EXIT['command'] = self.exit
-        self.EXIT.pack(pady=15)
+win.protocol("WM_DELETE_WINDOW",closeTrigger) #switch off all the leds if the GUI is closed.
 
-    def __init__(self, master=None):
-        tk.Frame.__init__(self, master)
-        
-        self.master = master
-        self.master.protocol('WM_WINDOW_DELETE', self.exit)
-        self.master.title('SIT210')
-        self.pack()
-
-        self.img = ImageTk.PhotoImage(Image.open('logo.png'))
-        
-        self.toggler = led.ToggleLED()
-        self.toggler.toggleLED('red')
-
-        self.selected_led = tk.StringVar()
-        self.selected_led.set('red')
-        
-        self.createWidgets()
-
-
-root = tk.Tk()
-app = Application(master=root)
-app.mainloop()
+win.mainloop() #the GUI keeps on running until the Exit or closs is clicked.
